@@ -1,0 +1,26 @@
+--- a/fastapi-auth.md
++++ b/fastapi-auth.md
+@@ -57,17 +57,19 @@
+             raise HTTPException(status_code=503, detail="authentication unavailable") from e
+ 
+         data = res.data
++        headers = {}
+         if data.ratelimits:
+             # Report the tightest limit that was checked.
+             rl = min(data.ratelimits, key=lambda r: r.remaining)
+-            response.headers["X-RateLimit-Limit"] = str(rl.limit)
+-            response.headers["X-RateLimit-Remaining"] = str(rl.remaining)
++            headers["X-RateLimit-Limit"] = str(rl.limit)
++            headers["X-RateLimit-Remaining"] = str(rl.remaining)
+             # rl.reset is a Unix timestamp in milliseconds; the header is conventionally seconds.
+-            response.headers["X-RateLimit-Reset"] = str(rl.reset // 1000)
++            headers["X-RateLimit-Reset"] = str(rl.reset // 1000)
+ 
+         if not data.valid:
+             code = data.code
+-            raise HTTPException(status_code=STATUS.get(code, 401), detail=code)
++            raise HTTPException(status_code=STATUS.get(code, 401), detail=code, headers=headers)
++        response.headers.update(headers)
+         return data
+ 
+     return dependency
